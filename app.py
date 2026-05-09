@@ -1,0 +1,767 @@
+"""
+Detectia fraudei pe carduri de credit - Aplicatie Streamlit
+Site interactiv care prezinta proiectul si permite predictii live.
+"""
+
+import pickle
+import numpy as np
+import pandas as pd
+import streamlit as st
+import plotly.graph_objects as go
+import plotly.express as px
+
+# ====================================================================
+# CONFIGURARE PAGINA
+# ====================================================================
+st.set_page_config(
+    page_title="Detectie Frauda AI",
+    page_icon="🔍",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# CSS personalizat - DARK MODE cu accente albastre/verzi
+st.markdown("""
+<style>
+    /* Header principal - gradient albastru-verde */
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, #00D4AA 0%, #4A9EFF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        font-size: 1.2rem;
+        color: #8B95A7;
+        font-style: italic;
+        margin-bottom: 2rem;
+    }
+    /* Carduri pentru statistici - fundal intunecat cu glow verde */
+    .metric-card {
+        background: linear-gradient(135deg, #1A1F2E 0%, #0E1117 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        color: #E4E8F0;
+        text-align: center;
+        border: 1px solid #2A3142;
+        box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+        transition: all 0.3s ease;
+    }
+    .metric-card:hover {
+        border-color: #00D4AA;
+        box-shadow: 0 0 30px rgba(0, 212, 170, 0.3);
+    }
+    .metric-value {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin: 0;
+        color: #00D4AA;
+    }
+    .metric-label {
+        font-size: 0.9rem;
+        color: #8B95A7;
+        margin: 0;
+    }
+    /* Tab-uri */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+        background-color: transparent;
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 12px 24px;
+        background-color: #1A1F2E;
+        border-radius: 8px 8px 0 0;
+        color: #8B95A7;
+        border: 1px solid #2A3142;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #00D4AA 0%, #4A9EFF 100%) !important;
+        color: #0E1117 !important;
+        font-weight: 600;
+        border: none !important;
+    }
+    /* Box rezultat frauda - rosu cu glow */
+    .result-box-fraud {
+        background: linear-gradient(135deg, #2A1518 0%, #1A0A0D 100%);
+        color: #FF6B7A;
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        margin: 1rem 0;
+        border: 2px solid #E74C3C;
+        box-shadow: 0 0 30px rgba(231, 76, 60, 0.3);
+    }
+    /* Box rezultat legitim - verde cu glow */
+    .result-box-legit {
+        background: linear-gradient(135deg, #0D2A1F 0%, #0A1A14 100%);
+        color: #00D4AA;
+        padding: 2rem;
+        border-radius: 12px;
+        text-align: center;
+        margin: 1rem 0;
+        border: 2px solid #00D4AA;
+        box-shadow: 0 0 30px rgba(0, 212, 170, 0.3);
+    }
+    /* Info box */
+    .info-box {
+        background-color: #1A1F2E;
+        border-left: 4px solid #00D4AA;
+        padding: 1rem 1.5rem;
+        border-radius: 4px;
+        margin: 1rem 0;
+        color: #E4E8F0;
+    }
+    .info-box b {
+        color: #00D4AA;
+    }
+    /* Pipeline pasi */
+    .pipeline-step {
+        text-align: center;
+        padding: 1rem;
+        background: linear-gradient(135deg, #1A1F2E 0%, #0E1117 100%);
+        border-radius: 8px;
+        border: 1px solid #2A3142;
+        color: #E4E8F0;
+    }
+    /* Butoane */
+    .stButton > button {
+        background-color: #1A1F2E;
+        color: #E4E8F0;
+        border: 1px solid #2A3142;
+        transition: all 0.3s ease;
+    }
+    .stButton > button:hover {
+        border-color: #00D4AA;
+        color: #00D4AA;
+        box-shadow: 0 0 15px rgba(0, 212, 170, 0.2);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# ====================================================================
+# INCARCARE MODEL SI DATE
+# ====================================================================
+@st.cache_resource
+def incarca_resurse():
+    """Incarca modelul, scaler-ul si rezultatele salvate."""
+    try:
+        with open("model.pkl", "rb") as f:
+            model = pickle.load(f)
+        with open("scaler.pkl", "rb") as f:
+            scaler = pickle.load(f)
+        with open("rezultate.pkl", "rb") as f:
+            rezultate = pickle.load(f)
+        with open("stats.pkl", "rb") as f:
+            stats = pickle.load(f)
+        return model, scaler, rezultate, stats, True
+    except FileNotFoundError:
+        return None, None, None, None, False
+
+model, scaler, rezultate, stats, fisiere_ok = incarca_resurse()
+
+# ====================================================================
+# SIDEBAR - NAVIGARE
+# ====================================================================
+with st.sidebar:
+    st.markdown("### 🔍 Detectie Frauda AI")
+    st.markdown("---")
+    st.markdown("**Proiect academic**")
+    st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
+    st.markdown("---")
+
+    st.markdown("**📊 Tehnologii**")
+    st.markdown("- Python 3")
+    st.markdown("- scikit-learn")
+    st.markdown("- XGBoost")
+    st.markdown("- SMOTE (imblearn)")
+    st.markdown("- Streamlit + Plotly")
+
+    st.markdown("---")
+    st.markdown("**📁 Dataset**")
+    st.markdown("[Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)")
+    st.markdown("Sursa: Kaggle (ULB)")
+
+    if not fisiere_ok:
+        st.markdown("---")
+        st.error("⚠️ Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
+
+# ====================================================================
+# HEADER PRINCIPAL
+# ====================================================================
+st.markdown('<p class="main-header">🔍 Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
+st.markdown('<p class="sub-header">Supravegherea riscurilor financiare prin Inteligenta Artificiala</p>', unsafe_allow_html=True)
+
+# ====================================================================
+# TAB-URI
+# ====================================================================
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "🏠 Acasa",
+    "📊 Analiza datelor",
+    "🤖 Demo predictie",
+    "📈 Rezultate modele",
+    "ℹ️ Despre proiect"
+])
+
+# ====================================================================
+# TAB 1: ACASA
+# ====================================================================
+with tab1:
+    st.markdown("### Despre proiect")
+    st.markdown("""
+    Acest proiect aplica tehnici de **Machine Learning** pentru detectia tranzactiilor
+    frauduloase efectuate cu carduri de credit. Tema generala — *Supravegherea riscurilor
+    financiare prin AI* — acopera trei directii: **detectia fraudei**, **anti-spalarea
+    banilor (AML)** si **gestionarea portofoliilor**. Implementarea proprie se concentreaza
+    pe prima directie, alegand un set de date public si o problema concreta.
+    """)
+
+    st.markdown("### Statistici cheie ale datasetului")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    if fisiere_ok:
+        with col1:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p class="metric-value">{stats['total']:,}</p>
+                <p class="metric-label">Total tranzactii</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p class="metric-value">{stats['fraude']}</p>
+                <p class="metric-label">Tranzactii frauduloase</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col3:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p class="metric-value">{stats['procent_fraude']:.3f}%</p>
+                <p class="metric-label">Procent fraude</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col4:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p class="metric-value">3</p>
+                <p class="metric-label">Modele comparate</p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.warning("Modelul nu este incarcat — afisez valori demonstrative.")
+
+    st.markdown("### Provocarea principala")
+    st.markdown("""
+    <div class="info-box">
+    <b>Dezechilibrul de clase</b> este principala provocare a acestei probleme. Doar <b>0.172%</b>
+    din tranzactii sunt frauduloase. Un model care prezice mereu „legitim" ar avea o acuratete
+    de 99.83%, dar ar fi inutil in practica. De aceea folosim metrici specializate
+    (Precision, Recall, F1, PR-AUC) si tehnici de echilibrare a claselor (SMOTE).
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### Pipeline-ul proiectului")
+    cols = st.columns(5)
+    pasi = [
+        ("1️⃣", "Incarcare\ndate"),
+        ("2️⃣", "Preprocesare\n+ Scalare"),
+        ("3️⃣", "SMOTE\nechilibrare"),
+        ("4️⃣", "Antrenare\n3 modele"),
+        ("5️⃣", "Evaluare\n+ Comparare"),
+    ]
+    for col, (icon, txt) in zip(cols, pasi):
+        with col:
+            st.markdown(f"""
+            <div class="pipeline-step">
+                <div style="font-size:2rem;">{icon}</div>
+                <div style="font-weight:600; white-space:pre-line; color:#00D4AA;">{txt}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+# ====================================================================
+# TAB 2: ANALIZA DATELOR
+# ====================================================================
+with tab2:
+    st.markdown("### Analiza exploratorie a datelor")
+
+    if fisiere_ok:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("#### Distributia claselor")
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=["Legitime", "Frauduloase"],
+                    y=[stats["legitime"], stats["fraude"]],
+                    marker_color=["#00D4AA", "#E74C3C"],
+                    text=[f"{stats['legitime']:,}", f"{stats['fraude']:,}"],
+                    textposition="outside",
+                )
+            ])
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                yaxis_type="log",
+                yaxis_title="Numar tranzactii (scara log)",
+                height=400,
+                showlegend=False,
+                margin=dict(t=20, b=20),
+                font=dict(color="#E4E8F0"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("Scara logaritmica datorita dezechilibrului extrem (1:578)")
+
+        with col2:
+            st.markdown("#### Suma medie a tranzactiilor")
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=["Legitime", "Frauduloase"],
+                    y=[stats["suma_medie_legitima"], stats["suma_medie_frauda"]],
+                    marker_color=["#00D4AA", "#E74C3C"],
+                    text=[f"{stats['suma_medie_legitima']:.2f}€",
+                          f"{stats['suma_medie_frauda']:.2f}€"],
+                    textposition="outside",
+                )
+            ])
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                yaxis_title="Suma medie (EUR)",
+                height=400,
+                showlegend=False,
+                margin=dict(t=20, b=20),
+                font=dict(color="#E4E8F0"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            st.caption("Sumele frauduloase au un profil diferit fata de cele legitime")
+
+        st.markdown("---")
+        st.markdown("### Despre setul de date")
+
+        col_info, col_table = st.columns([1, 1])
+        with col_info:
+            st.markdown("""
+            **Sursa**: Kaggle - Credit Card Fraud Detection (ULB)
+
+            **Perioada**: Septembrie 2013, 2 zile
+
+            **Caracteristici**:
+            - `Time` — secunde de la prima tranzactie
+            - `V1` — `V28` — trasaturi anonimizate prin PCA
+            - `Amount` — suma in EUR
+            - `Class` — eticheta (0=legitim, 1=frauda)
+
+            **De ce PCA?** Pentru a proteja confidentialitatea datelor reale ale
+            clientilor. Rezultatele PCA pastreaza informatia statistica fara a
+            dezvalui identitatea sau detalii sensibile.
+            """)
+
+        with col_table:
+            df_info = pd.DataFrame({
+                "Metrica": ["Total tranzactii", "Tranzactii legitime",
+                           "Tranzactii frauduloase", "Procent fraude",
+                           "Numar trasaturi", "Valori lipsa"],
+                "Valoare": [f"{stats['total']:,}",
+                           f"{stats['legitime']:,}",
+                           f"{stats['fraude']}",
+                           f"{stats['procent_fraude']:.3f}%",
+                           "30 (Time, V1-V28, Amount)",
+                           "Niciuna"]
+            })
+            st.dataframe(df_info, hide_index=True, use_container_width=True)
+    else:
+        st.info("Datele vor fi afisate dupa incarcarea modelului.")
+
+# ====================================================================
+# TAB 3: DEMO PREDICTIE
+# ====================================================================
+with tab3:
+    st.markdown("### 🤖 Demo predictie live")
+    st.markdown("""
+    Introdu valorile unei tranzactii si modelul XGBoost va prezice probabilitatea
+    de a fi frauduloasa. Poti folosi exemplele predefinite sau introduce valori manual.
+    """)
+
+    if fisiere_ok:
+        st.markdown("#### Alege un exemplu rapid sau introdu valori manual:")
+
+        col_ex1, col_ex2, col_ex3 = st.columns(3)
+        exemplu = None
+        with col_ex1:
+            if st.button("🟢 Exemplu tranzactie legitima", use_container_width=True):
+                exemplu = "legit"
+        with col_ex2:
+            if st.button("🔴 Exemplu tranzactie frauda", use_container_width=True):
+                exemplu = "frauda"
+        with col_ex3:
+            if st.button("🔄 Reseteaza valori", use_container_width=True):
+                exemplu = "reset"
+
+        # Valori implicite (medii din dataset, dupa scalare)
+        valori_default = {f"V{i}": 0.0 for i in range(1, 29)}
+        valori_default["Time"] = 50000.0
+        valori_default["Amount"] = 80.0
+
+        if exemplu == "legit":
+            st.session_state.update({f"V{i}": 0.0 for i in range(1, 29)})
+            st.session_state["Time"] = 50000.0
+            st.session_state["Amount"] = 80.0
+        elif exemplu == "frauda":
+            # Profil tipic de frauda: V14, V12, V10 puternic negative
+            st.session_state.update({f"V{i}": 0.0 for i in range(1, 29)})
+            st.session_state["V14"] = -10.0
+            st.session_state["V12"] = -8.0
+            st.session_state["V10"] = -7.0
+            st.session_state["V17"] = -8.0
+            st.session_state["V11"] = 5.0
+            st.session_state["Time"] = 50000.0
+            st.session_state["Amount"] = 1.0
+
+        st.markdown("---")
+
+        col_form1, col_form2 = st.columns(2)
+
+        with col_form1:
+            st.markdown("**Detalii tranzactie**")
+            time_val = st.number_input("Time (secunde de la prima tranzactie)",
+                                        value=st.session_state.get("Time", 50000.0),
+                                        key="Time_input")
+            amount_val = st.number_input("Amount (EUR)",
+                                         value=st.session_state.get("Amount", 80.0),
+                                         min_value=0.0,
+                                         key="Amount_input")
+
+            st.markdown("**Trasaturi V1 - V14** (anonimizate prin PCA)")
+            v_values = {}
+            for i in range(1, 15):
+                key = f"V{i}"
+                v_values[key] = st.slider(
+                    key, min_value=-30.0, max_value=15.0,
+                    value=float(st.session_state.get(key, 0.0)),
+                    step=0.1, key=f"slider_{key}"
+                )
+
+        with col_form2:
+            st.markdown("**Trasaturi V15 - V28**")
+            for i in range(15, 29):
+                key = f"V{i}"
+                v_values[key] = st.slider(
+                    key, min_value=-30.0, max_value=15.0,
+                    value=float(st.session_state.get(key, 0.0)),
+                    step=0.1, key=f"slider_{key}"
+                )
+
+        st.markdown("---")
+        col_btn = st.columns([1, 2, 1])
+        with col_btn[1]:
+            predict = st.button("🔍 ANALIZEAZA TRANZACTIA",
+                               use_container_width=True, type="primary")
+
+        if predict:
+            # Construim vectorul de input
+            time_scaled = scaler.transform([[time_val]])[0][0]
+            amount_scaled = scaler.transform([[amount_val]])[0][0]
+
+            # Ordinea exact ca in dataset
+            features = [time_scaled] + [v_values[f"V{i}"] for i in range(1, 29)] + [amount_scaled]
+            X_input = np.array(features).reshape(1, -1)
+
+            # Predictie
+            proba = model.predict_proba(X_input)[0, 1]
+            pred = int(proba > 0.5)
+
+            if pred == 1:
+                st.markdown(f"""
+                <div class="result-box-fraud">
+                    <div style="font-size:3rem;">⚠️</div>
+                    <div style="font-size:2rem; font-weight:700;">FRAUDA DETECTATA</div>
+                    <div style="font-size:1.5rem; margin-top:0.5rem;">
+                        Probabilitate: {proba*100:.1f}%
+                    </div>
+                    <div style="font-size:0.95rem; margin-top:1rem; opacity:0.9;">
+                        Aceasta tranzactie are caracteristici similare cu fraudele
+                        din setul de antrenare. Recomandare: blocare si verificare manuala.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div class="result-box-legit">
+                    <div style="font-size:3rem;">✓</div>
+                    <div style="font-size:2rem; font-weight:700;">TRANZACTIE LEGITIMA</div>
+                    <div style="font-size:1.5rem; margin-top:0.5rem;">
+                        Probabilitate frauda: {proba*100:.2f}%
+                    </div>
+                    <div style="font-size:0.95rem; margin-top:1rem; opacity:0.9;">
+                        Tranzactia a fost evaluata ca avand un risc scazut de frauda.
+                        Procesare normala recomandata.
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Bara de probabilitate
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=proba * 100,
+                title={"text": "Probabilitate frauda (%)", "font": {"color": "#E4E8F0"}},
+                number={"font": {"color": "#E4E8F0"}},
+                gauge={
+                    "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
+                    "bar": {"color": "#E74C3C" if pred else "#00D4AA"},
+                    "bgcolor": "#1A1F2E",
+                    "borderwidth": 2,
+                    "bordercolor": "#2A3142",
+                    "steps": [
+                        {"range": [0, 30], "color": "#0D2A1F"},
+                        {"range": [30, 70], "color": "#2A2515"},
+                        {"range": [70, 100], "color": "#2A1518"},
+                    ],
+                    "threshold": {
+                        "line": {"color": "#E4E8F0", "width": 3},
+                        "thickness": 0.75,
+                        "value": 50,
+                    },
+                },
+            ))
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                height=300, margin=dict(t=40, b=20),
+                font=dict(color="#E4E8F0"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Demo-ul de predictie necesita modelul antrenat (model.pkl).")
+
+# ====================================================================
+# TAB 4: REZULTATE MODELE
+# ====================================================================
+with tab4:
+    st.markdown("### 📈 Compararea modelelor antrenate")
+
+    if fisiere_ok:
+        # Tabel cu rezultate
+        st.markdown("#### Tabel comparativ")
+        df_rez = pd.DataFrame([
+            {
+                "Model": nume,
+                "Precision": f"{r['precision']:.4f}",
+                "Recall": f"{r['recall']:.4f}",
+                "F1-Score": f"{r['f1']:.4f}",
+                "ROC-AUC": f"{r['roc_auc']:.4f}",
+                "PR-AUC": f"{r['pr_auc']:.4f}",
+            }
+            for nume, r in rezultate.items()
+        ])
+        st.dataframe(df_rez, hide_index=True, use_container_width=True)
+
+        st.markdown("---")
+
+        # Grafic comparare metrici
+        st.markdown("#### Comparare grafica a metricilor")
+        metrici_nume = ["Precision", "Recall", "F1-Score", "ROC-AUC", "PR-AUC"]
+        metrici_keys = ["precision", "recall", "f1", "roc_auc", "pr_auc"]
+        culori_modele = {"Logistic Regression": "#4A9EFF", "Random Forest": "#00D4AA", "XGBoost": "#FF6B7A"}
+
+        fig = go.Figure()
+        for nume, r in rezultate.items():
+            fig.add_trace(go.Bar(
+                name=nume,
+                x=metrici_nume,
+                y=[r[k] for k in metrici_keys],
+                marker_color=culori_modele.get(nume, "#888"),
+            ))
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            barmode="group",
+            yaxis_title="Valoare",
+            yaxis=dict(range=[0, 1.05]),
+            height=450,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+            font=dict(color="#E4E8F0"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("---")
+
+        # Curbe ROC si PR
+        col_roc, col_pr = st.columns(2)
+
+        with col_roc:
+            st.markdown("#### Curba ROC")
+            fig = go.Figure()
+            for nume, r in rezultate.items():
+                fig.add_trace(go.Scatter(
+                    x=r["fpr"], y=r["tpr"],
+                    name=f"{nume} (AUC={r['roc_auc']:.3f})",
+                    mode="lines",
+                    line=dict(color=culori_modele.get(nume, "#888"), width=2),
+                ))
+            fig.add_trace(go.Scatter(
+                x=[0, 1], y=[0, 1], name="Aleator",
+                mode="lines", line=dict(dash="dash", color="#5A6478"),
+            ))
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Rata fals pozitive (FPR)",
+                yaxis_title="Rata adevarat pozitive (TPR)",
+                height=400,
+                legend=dict(yanchor="bottom", y=0.05, xanchor="right", x=0.95),
+                font=dict(color="#E4E8F0"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col_pr:
+            st.markdown("#### Curba Precision-Recall")
+            fig = go.Figure()
+            for nume, r in rezultate.items():
+                fig.add_trace(go.Scatter(
+                    x=r["recall_curve"], y=r["precision_curve"],
+                    name=f"{nume} (AP={r['pr_auc']:.3f})",
+                    mode="lines",
+                    line=dict(color=culori_modele.get(nume, "#888"), width=2),
+                ))
+            fig.update_layout(
+                template="plotly_dark",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                xaxis_title="Recall",
+                yaxis_title="Precision",
+                height=400,
+                legend=dict(yanchor="top", y=0.95, xanchor="left", x=0.05),
+                font=dict(color="#E4E8F0"),
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("---")
+
+        # Matrici de confuzie
+        st.markdown("#### Matrici de confuzie")
+        cols = st.columns(3)
+        for col, (nume, r) in zip(cols, rezultate.items()):
+            with col:
+                cm = np.array(r["confusion_matrix"])
+                fig = go.Figure(data=go.Heatmap(
+                    z=cm, x=["Legitim", "Frauda"], y=["Legitim", "Frauda"],
+                    text=cm, texttemplate="%{text}",
+                    colorscale=[[0, "#1A1F2E"], [0.5, "#2E5A4F"], [1, "#00D4AA"]],
+                    showscale=False,
+                ))
+                fig.update_layout(
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    title=nume,
+                    xaxis_title="Predictie", yaxis_title="Realitate",
+                    height=300, margin=dict(t=40, b=20),
+                    font=dict(color="#E4E8F0"),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("""
+        <div class="info-box">
+        <b>Concluzie:</b> XGBoost obtine cele mai bune rezultate pe toate metricile relevante,
+        confirmand reputatia algoritmului pe date tabulare. Random Forest este o alternativa
+        solida cu antrenare mai rapida. Logistic Regression are recall mare dar precision
+        redusa, generand multe alarme false.
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.warning("Rezultatele vor fi afisate dupa incarcarea modelelor.")
+
+# ====================================================================
+# TAB 5: DESPRE PROIECT
+# ====================================================================
+with tab5:
+    st.markdown("### ℹ️ Despre proiect")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown("""
+        #### Tema
+        **Supravegherea riscurilor financiare prin inteligenta artificiala:
+        frauda, spalare de bani si gestionarea portofoliilor.**
+
+        #### Cele 3 directii ale temei
+
+        **1. Detectia fraudei** *(directia implementata in acest proiect)*
+
+        Identificarea automata a tranzactiilor frauduloase folosind tehnici de
+        Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
+        deciziilor in timp real.
+
+        **2. Anti-spalarea banilor (AML)**
+
+        Detectarea schemelor prin care fonduri ilicite sunt reintroduse in economia
+        legala. Tehnici moderne includ Graph Neural Networks pentru analiza retelelor
+        de tranzactii suspecte.
+
+        **3. Gestionarea portofoliilor**
+
+        Optimizarea alocarii capitalului intre active. AI completeaza modelul clasic
+        Markowitz prin predictia volatilitatii (LSTM), Reinforcement Learning pentru
+        strategii adaptive si analiza de sentiment a stirilor financiare (BERT).
+
+        #### Metodologia (rezumat)
+        1. **Date**: Credit Card Fraud Detection (Kaggle, ULB)
+        2. **Preprocesare**: standardizare Time + Amount; impartire 80/20 cu stratificare
+        3. **Echilibrare**: SMOTE doar pe setul de antrenare
+        4. **Modele**: Logistic Regression, Random Forest, XGBoost
+        5. **Evaluare**: Precision, Recall, F1, ROC-AUC, PR-AUC
+
+        #### Tehnologii
+        - **Python 3** — limbajul de baza
+        - **scikit-learn** — modele clasice si preprocesare
+        - **XGBoost** — gradient boosting
+        - **imbalanced-learn** — SMOTE
+        - **Streamlit** — interfata web interactiva
+        - **Plotly** — grafice interactive
+
+        #### Documentatie completa
+        Documentatia detaliata (13 pagini) este disponibila in repository-ul
+        proiectului. Aceasta include contextul teoretic complet, metodologia,
+        analiza rezultatelor si bibliografia.
+        """)
+
+    with col2:
+        st.markdown("#### 📁 Resurse")
+        st.markdown("""
+        - [📄 Dataset Kaggle](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
+        - [📚 SMOTE paper](https://arxiv.org/abs/1106.1813)
+        - [📚 XGBoost paper](https://arxiv.org/abs/1603.02754)
+        - [🌐 Streamlit](https://streamlit.io)
+        """)
+
+        st.markdown("#### 👤 Autor")
+        st.markdown("""
+        **[Numele tau]**
+        Proiect academic 2025-2026
+        """)
+
+        st.markdown("#### 🛠️ Status")
+        if fisiere_ok:
+            st.success("✓ Model incarcat")
+            st.success("✓ Aplicatie functionala")
+        else:
+            st.error("✗ Modelul nu este incarcat")
+
+# Footer
+st.markdown("---")
+st.markdown("""
+<div style="text-align:center; color:#5A6478; font-size:0.85rem; padding:1rem;">
+Proiect academic - Detectia fraudei prin AI · Construit cu Streamlit · 2026
+</div>
+""", unsafe_allow_html=True)
