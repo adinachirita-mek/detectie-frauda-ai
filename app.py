@@ -15,7 +15,7 @@ import plotly.express as px
 # ====================================================================
 st.set_page_config(
     page_title="Detectie Frauda AI",
-    page_icon="🔍",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -166,13 +166,13 @@ model, scaler, rezultate, stats, fisiere_ok = incarca_resurse()
 # SIDEBAR - NAVIGARE
 # ====================================================================
 with st.sidebar:
-    st.markdown("### 🔍 Detectie Frauda AI")
+    st.markdown("### Detectie Frauda AI")
     st.markdown("---")
     st.markdown("**Proiect academic**")
     st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
     st.markdown("---")
 
-    st.markdown("**📊 Tehnologii**")
+    st.markdown("**Tehnologii**")
     st.markdown("- Python 3")
     st.markdown("- scikit-learn")
     st.markdown("- XGBoost")
@@ -180,29 +180,29 @@ with st.sidebar:
     st.markdown("- Streamlit + Plotly")
 
     st.markdown("---")
-    st.markdown("**📁 Dataset**")
+    st.markdown("**Dataset**")
     st.markdown("[Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)")
     st.markdown("Sursa: Kaggle (ULB)")
 
     if not fisiere_ok:
         st.markdown("---")
-        st.error("⚠️ Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
+        st.error("Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
 
 # ====================================================================
 # HEADER PRINCIPAL
 # ====================================================================
-st.markdown('<p class="main-header">🔍 Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Supravegherea riscurilor financiare prin Inteligenta Artificiala</p>', unsafe_allow_html=True)
 
 # ====================================================================
 # TAB-URI
 # ====================================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "🏠 Acasa",
-    "📊 Analiza datelor",
-    "🤖 Demo predictie",
-    "📈 Rezultate modele",
-    "ℹ️ Despre proiect"
+    "Acasa",
+    "Analiza datelor",
+    "Demo predictie",
+    "Rezultate modele",
+    "Despre proiect"
 ])
 
 # ====================================================================
@@ -267,18 +267,18 @@ with tab1:
     st.markdown("### Pipeline-ul proiectului")
     cols = st.columns(5)
     pasi = [
-        ("1️⃣", "Incarcare\ndate"),
-        ("2️⃣", "Preprocesare\n+ Scalare"),
-        ("3️⃣", "SMOTE\nechilibrare"),
-        ("4️⃣", "Antrenare\n3 modele"),
-        ("5️⃣", "Evaluare\n+ Comparare"),
+        ("1", "Incarcare\ndate"),
+        ("2", "Preprocesare\n+ Scalare"),
+        ("3", "SMOTE\nechilibrare"),
+        ("4", "Antrenare\n3 modele"),
+        ("5", "Evaluare\n+ Comparare"),
     ]
     for col, (icon, txt) in zip(cols, pasi):
         with col:
             st.markdown(f"""
             <div class="pipeline-step">
-                <div style="font-size:2rem;">{icon}</div>
-                <div style="font-weight:600; white-space:pre-line; color:#00D4AA;">{txt}</div>
+                <div style="font-size:1.8rem; font-weight:700; color:#00D4AA;">{icon}</div>
+                <div style="font-weight:600; white-space:pre-line; color:#E4E8F0; margin-top:0.3rem;">{txt}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -382,7 +382,7 @@ with tab2:
 # TAB 3: DEMO PREDICTIE
 # ====================================================================
 with tab3:
-    st.markdown("### 🤖 Demo predictie live")
+    st.markdown("### Demo predictie live")
     st.markdown("""
     Introdu valorile unei tranzactii si modelul XGBoost va prezice probabilitatea
     de a fi frauduloasa. Poti folosi exemplele predefinite sau introduce valori manual.
@@ -394,13 +394,13 @@ with tab3:
         col_ex1, col_ex2, col_ex3 = st.columns(3)
         exemplu = None
         with col_ex1:
-            if st.button("🟢 Exemplu tranzactie legitima", use_container_width=True):
+            if st.button("Exemplu tranzactie legitima", use_container_width=True):
                 exemplu = "legit"
         with col_ex2:
-            if st.button("🔴 Exemplu tranzactie frauda", use_container_width=True):
+            if st.button("Exemplu tranzactie frauda", use_container_width=True):
                 exemplu = "frauda"
         with col_ex3:
-            if st.button("🔄 Reseteaza valori", use_container_width=True):
+            if st.button("Reseteaza valori", use_container_width=True):
                 exemplu = "reset"
 
         # Valori implicite (medii din dataset, dupa scalare)
@@ -460,7 +460,7 @@ with tab3:
         st.markdown("---")
         col_btn = st.columns([1, 2, 1])
         with col_btn[1]:
-            predict = st.button("🔍 ANALIZEAZA TRANZACTIA",
+            predict = st.button("ANALIZEAZA TRANZACTIA",
                                use_container_width=True, type="primary")
 
         if predict:
@@ -479,7 +479,7 @@ with tab3:
             if pred == 1:
                 st.markdown(f"""
                 <div class="result-box-fraud">
-                    <div style="font-size:3rem;">⚠️</div>
+                    <div style="font-size:2rem; font-weight:700; color:#FF6B7A;">ATENTIE</div>
                     <div style="font-size:2rem; font-weight:700;">FRAUDA DETECTATA</div>
                     <div style="font-size:1.5rem; margin-top:0.5rem;">
                         Probabilitate: {proba*100:.1f}%
@@ -493,7 +493,7 @@ with tab3:
             else:
                 st.markdown(f"""
                 <div class="result-box-legit">
-                    <div style="font-size:3rem;">✓</div>
+                    <div style="font-size:2rem; font-weight:700; color:#00D4AA;">OK</div>
                     <div style="font-size:2rem; font-weight:700;">TRANZACTIE LEGITIMA</div>
                     <div style="font-size:1.5rem; margin-top:0.5rem;">
                         Probabilitate frauda: {proba*100:.2f}%
@@ -544,7 +544,7 @@ with tab3:
 # TAB 4: REZULTATE MODELE
 # ====================================================================
 with tab4:
-    st.markdown("### 📈 Compararea modelelor antrenate")
+    st.markdown("### Compararea modelelor antrenate")
 
     if fisiere_ok:
         # Tabel cu rezultate
@@ -685,7 +685,7 @@ with tab4:
 # TAB 5: DESPRE PROIECT
 # ====================================================================
 with tab5:
-    st.markdown("### ℹ️ Despre proiect")
+    st.markdown("### Despre proiect")
 
     col1, col2 = st.columns([2, 1])
 
@@ -737,26 +737,26 @@ with tab5:
         """)
 
     with col2:
-        st.markdown("#### 📁 Resurse")
+        st.markdown("#### Resurse")
         st.markdown("""
-        - [📄 Dataset Kaggle](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
-        - [📚 SMOTE paper](https://arxiv.org/abs/1106.1813)
-        - [📚 XGBoost paper](https://arxiv.org/abs/1603.02754)
-        - [🌐 Streamlit](https://streamlit.io)
+        - [Dataset Kaggle](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
+        - [SMOTE paper](https://arxiv.org/abs/1106.1813)
+        - [XGBoost paper](https://arxiv.org/abs/1603.02754)
+        - [Streamlit](https://streamlit.io)
         """)
 
-        st.markdown("#### 👤 Autor")
+        st.markdown("#### Autor")
         st.markdown("""
         **[Numele tau]**
         Proiect academic 2025-2026
         """)
 
-        st.markdown("#### 🛠️ Status")
+        st.markdown("#### Status")
         if fisiere_ok:
-            st.success("✓ Model incarcat")
-            st.success("✓ Aplicatie functionala")
+            st.success("Model incarcat")
+            st.success("Aplicatie functionala")
         else:
-            st.error("✗ Modelul nu este incarcat")
+            st.error("Modelul nu este incarcat")
 
 # Footer
 st.markdown("---")
