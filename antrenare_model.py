@@ -1,14 +1,3 @@
-"""
-Script de antrenare - se ruleaza O SINGURA DATA pentru a genera fisierele:
-  - model.pkl       (modelul XGBoost antrenat)
-  - scaler.pkl      (scalerul pentru Time si Amount)
-  - rezultate.pkl   (metricile, curbele ROC/PR pentru toate modelele)
-
-Acest script se ruleaza in Google Colab (gratuit, in browser).
-Dupa rulare, descarci cele 3 fisiere .pkl si le pui in repository-ul GitHub
-alaturi de app.py.
-"""
-
 import pickle
 import numpy as np
 import pandas as pd
@@ -80,7 +69,7 @@ for nume, model in modele.items():
     }
     print(f"      F1={rezultate[nume]['f1']:.3f}, ROC-AUC={rezultate[nume]['roc_auc']:.3f}")
 
-# Salvam doar modelul XGBoost (cel mai performant) pentru predictii live
+# Modelul XGBoost pentru predictii live
 print("5. Salvez fisierele...")
 with open("model.pkl", "wb") as f:
     pickle.dump(modele["XGBoost"], f)
@@ -91,7 +80,7 @@ with open("scaler.pkl", "wb") as f:
 with open("rezultate.pkl", "wb") as f:
     pickle.dump(rezultate, f)
 
-# Salvam si cateva statistici despre dataset pentru afisare
+
 stats = {
     "total": len(df),
     "fraude": int(df["Class"].sum()),
