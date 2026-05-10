@@ -389,39 +389,38 @@ with tab3:
     """)
 
     if fisiere_ok:
+        # Initializam session_state la prima incarcare
+        def set_legit():
+            for i in range(1, 29):
+                st.session_state[f"slider_V{i}"] = 0.0
+            st.session_state["inp_time"] = 50000.0
+            st.session_state["inp_amount"] = 80.0
+
+        def set_frauda():
+            for i in range(1, 29):
+                st.session_state[f"slider_V{i}"] = 0.0
+            st.session_state["slider_V14"] = -10.0
+            st.session_state["slider_V12"] = -8.0
+            st.session_state["slider_V10"] = -7.0
+            st.session_state["slider_V17"] = -8.0
+            st.session_state["slider_V11"] = 5.0
+            st.session_state["inp_time"] = 50000.0
+            st.session_state["inp_amount"] = 1.0
+
+        def set_reset():
+            for i in range(1, 29):
+                st.session_state[f"slider_V{i}"] = 0.0
+            st.session_state["inp_time"] = 50000.0
+            st.session_state["inp_amount"] = 80.0
+
         st.markdown("#### Alege un exemplu rapid sau introdu valori manual:")
-
         col_ex1, col_ex2, col_ex3 = st.columns(3)
-        exemplu = None
         with col_ex1:
-            if st.button("Exemplu tranzactie legitima", use_container_width=True):
-                exemplu = "legit"
+            st.button("Exemplu tranzactie legitima", use_container_width=True, on_click=set_legit)
         with col_ex2:
-            if st.button("Exemplu tranzactie frauda", use_container_width=True):
-                exemplu = "frauda"
+            st.button("Exemplu tranzactie frauda", use_container_width=True, on_click=set_frauda)
         with col_ex3:
-            if st.button("Reseteaza valori", use_container_width=True):
-                exemplu = "reset"
-
-        # Valori implicite (medii din dataset, dupa scalare)
-        valori_default = {f"V{i}": 0.0 for i in range(1, 29)}
-        valori_default["Time"] = 50000.0
-        valori_default["Amount"] = 80.0
-
-        if exemplu == "legit":
-            st.session_state.update({f"V{i}": 0.0 for i in range(1, 29)})
-            st.session_state["Time"] = 50000.0
-            st.session_state["Amount"] = 80.0
-        elif exemplu == "frauda":
-            # Profil tipic de frauda: V14, V12, V10 puternic negative
-            st.session_state.update({f"V{i}": 0.0 for i in range(1, 29)})
-            st.session_state["V14"] = -10.0
-            st.session_state["V12"] = -8.0
-            st.session_state["V10"] = -7.0
-            st.session_state["V17"] = -8.0
-            st.session_state["V11"] = 5.0
-            st.session_state["Time"] = 50000.0
-            st.session_state["Amount"] = 1.0
+            st.button("Reseteaza valori", use_container_width=True, on_click=set_reset)
 
         st.markdown("---")
 
@@ -429,32 +428,34 @@ with tab3:
 
         with col_form1:
             st.markdown("**Detalii tranzactie**")
-            time_val = st.number_input("Time (secunde de la prima tranzactie)",
-                                        value=st.session_state.get("Time", 50000.0),
-                                        key="Time_input")
-            amount_val = st.number_input("Amount (EUR)",
-                                         value=st.session_state.get("Amount", 80.0),
-                                         min_value=0.0,
-                                         key="Amount_input")
+            time_val = st.number_input(
+                "Time (secunde de la prima tranzactie)",
+                value=st.session_state.get("inp_time", 50000.0),
+                key="inp_time"
+            )
+            amount_val = st.number_input(
+                "Amount (EUR)",
+                value=st.session_state.get("inp_amount", 80.0),
+                min_value=0.0,
+                key="inp_amount"
+            )
 
             st.markdown("**Trasaturi V1 - V14** (anonimizate prin PCA)")
             v_values = {}
             for i in range(1, 15):
-                key = f"V{i}"
-                v_values[key] = st.slider(
-                    key, min_value=-30.0, max_value=15.0,
-                    value=float(st.session_state.get(key, 0.0)),
-                    step=0.1, key=f"slider_{key}"
+                v_values[f"V{i}"] = st.slider(
+                    f"V{i}", min_value=-30.0, max_value=15.0,
+                    value=st.session_state.get(f"slider_V{i}", 0.0),
+                    step=0.1, key=f"slider_V{i}"
                 )
 
         with col_form2:
             st.markdown("**Trasaturi V15 - V28**")
             for i in range(15, 29):
-                key = f"V{i}"
-                v_values[key] = st.slider(
-                    key, min_value=-30.0, max_value=15.0,
-                    value=float(st.session_state.get(key, 0.0)),
-                    step=0.1, key=f"slider_{key}"
+                v_values[f"V{i}"] = st.slider(
+                    f"V{i}", min_value=-30.0, max_value=15.0,
+                    value=st.session_state.get(f"slider_V{i}", 0.0),
+                    step=0.1, key=f"slider_V{i}"
                 )
 
         st.markdown("---")
@@ -465,8 +466,8 @@ with tab3:
 
         if predict:
             # Construim vectorul de input
-            time_scaled = scaler.transform([[time_val]])[0][0]
-            amount_scaled = scaler.transform([[amount_val]])[0][0]
+            time_scaled = scaler.transform([[st.session_state.get("inp_time", 50000.0)]])[0][0]
+            amount_scaled = scaler.transform([[st.session_state.get("inp_amount", 80.0)]])[0][0]
 
             # Ordinea exact ca in dataset
             features = [time_scaled] + [v_values[f"V{i}"] for i in range(1, 29)] + [amount_scaled]
