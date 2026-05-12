@@ -517,7 +517,7 @@ with tab3:
                     <div style="font-size:2rem; font-weight:700; color:#00D4AA;">OK</div>
                     <div style="font-size:2rem; font-weight:700;">TRANZACTIE LEGITIMA</div>
                     <div style="font-size:1.5rem; margin-top:0.5rem;">
-                        Probabilitate frauda: {proba*100:.2f}%
+                        Probabilitate frauda: {proba*100:.4f}%
                     </div>
                     <div style="font-size:0.95rem; margin-top:1rem; opacity:0.9;">
                         Tranzactia a fost evaluata ca avand un risc scazut de frauda.
@@ -527,37 +527,27 @@ with tab3:
                 """, unsafe_allow_html=True)
 
 
-            # Bara de probabilitate - scala adaptiva
-            # Pentru valori mici folosim scala 0-10, pentru mari 0-100
-            if proba < 0.1:
-                scala_max = 10
-                val_display = proba * 100
-            else:
-                scala_max = 100
-                val_display = proba * 100
-
+            # Bara de probabilitate
             fig = go.Figure(go.Indicator(
                 mode="gauge+number",
-                value=val_display,
-                title={"text": f"Probabilitate frauda (%) — scala 0-{scala_max}%",
-                       "font": {"color": "#E4E8F0"}},
-                number={"font": {"color": "#E4E8F0"}, "valueformat": ".2f",
-                        "suffix": "%"},
+                value=proba * 100,
+                title={"text": "Probabilitate frauda (%)", "font": {"color": "#E4E8F0"}},
+                number={"font": {"color": "#E4E8F0"}, "valueformat": ".2f", "suffix": "%"},
                 gauge={
-                    "axis": {"range": [0, scala_max], "tickcolor": "#8B95A7"},
+                    "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
                     "bar": {"color": "#E74C3C" if pred else "#00D4AA"},
                     "bgcolor": "#1A1F2E",
                     "borderwidth": 2,
                     "bordercolor": "#2A3142",
                     "steps": [
-                        {"range": [0, scala_max * 0.3], "color": "#0D2A1F"},
-                        {"range": [scala_max * 0.3, scala_max * 0.7], "color": "#2A2515"},
-                        {"range": [scala_max * 0.7, scala_max], "color": "#2A1518"},
+                        {"range": [0, 30], "color": "#0D2A1F"},
+                        {"range": [30, 70], "color": "#2A2515"},
+                        {"range": [70, 100], "color": "#2A1518"},
                     ],
                     "threshold": {
                         "line": {"color": "#E4E8F0", "width": 3},
                         "thickness": 0.75,
-                        "value": scala_max * 0.5,
+                        "value": 50,
                     },
                 },
             ))
@@ -565,7 +555,7 @@ with tab3:
                 template="plotly_dark",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                height=300, margin=dict(t=60, b=20),
+                height=300, margin=dict(t=40, b=20),
                 font=dict(color="#E4E8F0"),
             )
             st.plotly_chart(fig, use_container_width=True)
