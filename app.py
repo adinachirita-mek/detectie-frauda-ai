@@ -389,74 +389,81 @@ with tab3:
     """)
 
     if fisiere_ok:
-        # Initializam session_state la prima incarcare
-        def set_legit():
-            for i in range(1, 29):
-                st.session_state[f"slider_V{i}"] = 0.0
-            st.session_state["inp_time"] = 50000.0
-            st.session_state["inp_amount"] = 80.0
+        # Profile predefinite de tranzactii (valorile V sunt bazate pe mediile reale din dataset)
+        PROFILE = {
+            "Tranzactie obisnuita (cumparaturi online)": {
+                "amount": 85.0, "time": 50000.0,
+                "V": [0.0]*28,
+            },
+            "Tranzactie mare (electronice)": {
+                "amount": 1200.0, "time": 72000.0,
+                "V": [0.2, -0.1, 0.3, 0.1, -0.2, 0.0, 0.1, -0.1,
+                      0.2, 0.1, 0.3, -0.1, 0.2, 0.1, 0.0, -0.1,
+                      0.1, 0.2, -0.1, 0.0, 0.1, -0.2, 0.1, 0.0,
+                      0.1, -0.1, 0.2, 0.1],
+            },
+            "Tranzactie mica (noaptea)": {
+                "amount": 4.5, "time": 5000.0,
+                "V": [0.1, 0.2, -0.1, 0.0, 0.1, -0.2, 0.1, 0.0,
+                      0.2, 0.1, -0.1, 0.3, 0.0, 0.1, -0.1, 0.2,
+                      0.1, 0.0, -0.1, 0.2, 0.1, 0.0, -0.2, 0.1,
+                      0.0, 0.1, -0.1, 0.2],
+            },
+            "Profil suspect (suma mica, comportament anormal)": {
+                "amount": 1.0, "time": 50000.0,
+                "V": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                      0.0, -7.0, 5.0, -8.0, 0.0, -10.0, 0.0, 0.0,
+                      -8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                      0.0, 0.0, 0.0, 0.0],
+            },
+            "Profil frauda (tranzactie rapida, suma atipica)": {
+                "amount": 0.89, "time": 406.0,
+                "V": [-2.3, 1.9, -1.7, 0.4, -1.1, -1.4, 0.3, -1.8,
+                      1.0, -0.4, -0.6, -1.2, -1.4, -10.5, 0.5, 0.3,
+                      -1.3, -1.7, 0.5, 0.1, -0.3, 0.1, -0.5, 0.2,
+                      0.1, -0.1, 0.1, 0.0],
+            },
+        }
 
-        def set_frauda():
-            for i in range(1, 29):
-                st.session_state[f"slider_V{i}"] = 0.0
-            st.session_state["slider_V14"] = -10.0
-            st.session_state["slider_V12"] = -8.0
-            st.session_state["slider_V10"] = -7.0
-            st.session_state["slider_V17"] = -8.0
-            st.session_state["slider_V11"] = 5.0
-            st.session_state["inp_time"] = 50000.0
-            st.session_state["inp_amount"] = 1.0
+        st.markdown("#### Selecteaza tipul tranzactiei")
+        profil_ales = st.selectbox(
+            "Alege un scenariu predefinit sau personalizeaza mai jos:",
+            options=list(PROFILE.keys()),
+            key="profil_selectat"
+        )
 
-        def set_reset():
-            for i in range(1, 29):
-                st.session_state[f"slider_V{i}"] = 0.0
-            st.session_state["inp_time"] = 50000.0
-            st.session_state["inp_amount"] = 80.0
-
-        st.markdown("#### Alege un exemplu rapid sau introdu valori manual:")
-        col_ex1, col_ex2, col_ex3 = st.columns(3)
-        with col_ex1:
-            st.button("Exemplu tranzactie legitima", use_container_width=True, on_click=set_legit)
-        with col_ex2:
-            st.button("Exemplu tranzactie frauda", use_container_width=True, on_click=set_frauda)
-        with col_ex3:
-            st.button("Reseteaza valori", use_container_width=True, on_click=set_reset)
+        profil = PROFILE[profil_ales]
 
         st.markdown("---")
+        st.markdown("#### Personalizeaza tranzactia")
+        st.markdown("Poti modifica suma si ora tranzactiei. Restul parametrilor sunt setati automat conform profilului ales.")
 
         col_form1, col_form2 = st.columns(2)
-
         with col_form1:
-            st.markdown("**Detalii tranzactie**")
-            time_val = st.number_input(
-                "Time (secunde de la prima tranzactie)",
-                value=st.session_state.get("inp_time", 50000.0),
-                key="inp_time"
-            )
             amount_val = st.number_input(
-                "Amount (EUR)",
-                value=st.session_state.get("inp_amount", 80.0),
+                "Suma tranzactiei (EUR)",
+                value=float(profil["amount"]),
                 min_value=0.0,
-                key="inp_amount"
+                step=1.0,
+                help="Suma in euro a tranzactiei"
             )
-
-            st.markdown("**Trasaturi V1 - V14** (anonimizate prin PCA)")
-            v_values = {}
-            for i in range(1, 15):
-                v_values[f"V{i}"] = st.slider(
-                    f"V{i}", min_value=-30.0, max_value=15.0,
-                    value=st.session_state.get(f"slider_V{i}", 0.0),
-                    step=0.1, key=f"slider_V{i}"
-                )
-
         with col_form2:
-            st.markdown("**Trasaturi V15 - V28**")
-            for i in range(15, 29):
-                v_values[f"V{i}"] = st.slider(
-                    f"V{i}", min_value=-30.0, max_value=15.0,
-                    value=st.session_state.get(f"slider_V{i}", 0.0),
-                    step=0.1, key=f"slider_V{i}"
-                )
+            ora = st.slider(
+                "Ora tranzactiei",
+                min_value=0, max_value=23,
+                value=int((profil["time"] % 86400) // 3600),
+                format="%d:00",
+                help="Ora din zi la care s-a efectuat tranzactia"
+            )
+            time_val = float(ora * 3600 + 43200)
+
+        # Info despre profilul ales
+        st.markdown("""
+        <div class="info-box">
+        Parametrii interni (V1-V28) sunt setati automat pe baza profilului selectat.
+        Acestia reprezinta trasaturi anonimizate prin PCA din datele reale de tranzactii.
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("---")
         col_btn = st.columns([1, 2, 1])
@@ -465,12 +472,10 @@ with tab3:
                                use_container_width=True, type="primary")
 
         if predict:
-            # Construim vectorul de input
-            time_scaled = scaler.transform([[st.session_state.get("inp_time", 50000.0)]])[0][0]
-            amount_scaled = scaler.transform([[st.session_state.get("inp_amount", 80.0)]])[0][0]
-
-            # Ordinea exact ca in dataset
-            features = [time_scaled] + [v_values[f"V{i}"] for i in range(1, 29)] + [amount_scaled]
+            time_scaled = scaler.transform([[time_val]])[0][0]
+            amount_scaled = scaler.transform([[amount_val]])[0][0]
+            v_values = profil["V"]
+            features = [time_scaled] + v_values + [amount_scaled]
             X_input = np.array(features).reshape(1, -1)
 
             # Predictie
