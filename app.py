@@ -385,140 +385,107 @@ with tab2:
 # ====================================================================
 with tab3:
     st.markdown("### Demo predictie live")
-    st.markdown("Modelul analizeaza simultan o tranzactie legitima si una frauduloasa. Contrastul dintre cele doua este imediat vizibil.")
+    st.markdown("Foloseste slider-ul pentru a modifica profilul tranzactiei in timp real si vezi cum reactioneaza modelul.")
 
     if fisiere_ok:
 
-        # Date fixe pentru cele doua scenarii
-        LEGITIM = {
-            "label": "Tranzactie legitima",
-            "amount": 100.0, "time": 50000.0,
-            "V": [-1.3598, -0.0728, 2.5363, 1.3782, -0.3383, 0.4624, 0.2396, 0.0987,
-                  0.3638, 0.0908, -0.5516, -0.6178, -0.9914, -0.3112, 1.4682, -0.4704,
-                  0.208, 0.0258, 0.404, 0.2514, -0.0183, 0.2778, -0.1105, 0.0669,
-                  0.1285, -0.1891, 0.1336, -0.0211],
-        }
-        FRAUDA = {
-            "label": "Tranzactie frauduloasa",
-            "amount": 0.0, "time": 406.0,
-            "V": [-2.3122, 1.952, -1.6099, 3.9979, -0.5222, -1.4265, -2.5374, 1.3917,
-                  -2.7701, -2.7723, 3.202, -2.8999, -0.5952, -4.2893, 0.3897, -1.1407,
-                  -2.8301, -0.0168, 0.417, 0.1269, 0.5172, -0.035, -0.4652, 0.3202,
-                  0.0445, 0.1778, 0.2611, -0.1433],
-        }
-        SUSPECT = {
-            "label": "Tranzactie suspecta",
-            "amount": 100.0, "time": 50000.0,
-            "V": [-1.836, 0.9396, 0.4632, 2.6881, -0.4303, -0.4821, -1.1489, 0.7452,
-                  -1.2031, -1.3407, 1.3252, -1.7589, -0.7933, -2.3003, 0.9289, -0.8055,
-                  -1.311, 0.0045, 0.4105, 0.1892, 0.2495, 0.1214, -0.2878, 0.1935,
-                  0.0865, -0.0056, 0.1973, -0.0822],
-        }
+        V_LEGIT = [-1.3598, -0.0728, 2.5363, 1.3782, -0.3383, 0.4624, 0.2396, 0.0987,
+                   0.3638, 0.0908, -0.5516, -0.6178, -0.9914, -0.3112, 1.4682, -0.4704,
+                   0.208, 0.0258, 0.404, 0.2514, -0.0183, 0.2778, -0.1105, 0.0669,
+                   0.1285, -0.1891, 0.1336, -0.0211]
+        V_FRAUDA = [-2.3122, 1.952, -1.6099, 3.9979, -0.5222, -1.4265, -2.5374, 1.3917,
+                    -2.7701, -2.7723, 3.202, -2.8999, -0.5952, -4.2893, 0.3897, -1.1407,
+                    -2.8301, -0.0168, 0.417, 0.1269, 0.5172, -0.035, -0.4652, 0.3202,
+                    0.0445, 0.1778, 0.2611, -0.1433]
 
-        def predict_profil(profil):
-            t = scaler_time.transform(np.array([[profil["time"]]]))[0][0]
-            a = scaler_amount.transform(np.array([[profil["amount"]]]))[0][0]
-            features = [t] + profil["V"] + [a]
-            X = np.array(features).reshape(1, -1)
-            return model.predict_proba(X)[0, 1]
+        st.markdown("---")
 
-        def gauge_fig(proba, culoare):
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=proba * 100,
-                number={"font": {"color": "#E4E8F0", "size": 36},
-                        "valueformat": ".2f", "suffix": "%"},
-                gauge={
-                    "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
-                    "bar": {"color": culoare},
-                    "bgcolor": "#1A1F2E",
-                    "borderwidth": 2,
-                    "bordercolor": "#2A3142",
-                    "steps": [
-                        {"range": [0, 30], "color": "#0D2A1F"},
-                        {"range": [30, 70], "color": "#2A2515"},
-                        {"range": [70, 100], "color": "#2A1518"},
-                    ],
-                    "threshold": {
-                        "line": {"color": "#E4E8F0", "width": 3},
-                        "thickness": 0.75, "value": 50,
-                    },
+        # Slider principal
+        nivel = st.slider(
+            "Nivel de risc al tranzactiei",
+            min_value=0, max_value=100, value=0, step=1,
+            format="%d%%",
+            help="0% = tranzactie complet normala | 100% = profil de frauda pur"
+        )
+
+        # Interpolare in timp real
+        pct = nivel / 100.0
+        v_mix = [V_LEGIT[i] * (1 - pct) + V_FRAUDA[i] * pct for i in range(28)]
+        amount_mix = 100.0 * (1 - pct) + 0.0 * pct
+        time_mix = 50000.0 * (1 - pct) + 406.0 * pct
+
+        t_scaled = scaler_time.transform(np.array([[time_mix]]))[0][0]
+        a_scaled = scaler_amount.transform(np.array([[amount_mix]]))[0][0]
+        features = [t_scaled] + v_mix + [a_scaled]
+        proba = model.predict_proba(np.array(features).reshape(1, -1))[0, 1]
+        pred = int(proba > 0.5)
+
+        # Culoare dinamica bazata pe probabilitate
+        if proba < 0.3:
+            culoare = "#00D4AA"
+            eticheta = "LEGITIMA"
+        elif proba < 0.7:
+            culoare = "#F39C12"
+            eticheta = "SUSPECTA"
+        else:
+            culoare = "#E74C3C"
+            eticheta = "FRAUDA DETECTATA"
+
+        # Box rezultat
+        st.markdown(f"""
+        <div style="background:linear-gradient(135deg, #1A1F2E, #0E1117);
+                    border: 2px solid {culoare}; border-radius:12px;
+                    padding:1.5rem; text-align:center; margin:1rem 0;
+                    box-shadow: 0 0 30px {culoare}44;">
+            <div style="font-size:1.8rem; font-weight:700; color:{culoare};">
+                {eticheta}
+            </div>
+            <div style="font-size:3rem; font-weight:700; color:{culoare}; margin:0.5rem 0;">
+                {proba*100:.2f}%
+            </div>
+            <div style="color:#8B95A7; font-size:0.9rem;">
+                Suma: {amount_mix:.2f} EUR &nbsp;|&nbsp; Nivel risc selectat: {nivel}%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Gauge
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=proba * 100,
+            number={"font": {"color": "#E4E8F0", "size": 48},
+                    "valueformat": ".2f", "suffix": "%"},
+            gauge={
+                "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
+                "bar": {"color": culoare},
+                "bgcolor": "#1A1F2E",
+                "borderwidth": 2,
+                "bordercolor": "#2A3142",
+                "steps": [
+                    {"range": [0, 30], "color": "#0D2A1F"},
+                    {"range": [30, 70], "color": "#2A2515"},
+                    {"range": [70, 100], "color": "#2A1518"},
+                ],
+                "threshold": {
+                    "line": {"color": "#E4E8F0", "width": 3},
+                    "thickness": 0.75, "value": 50,
                 },
-            ))
-            fig.update_layout(
-                template="plotly_dark",
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="rgba(0,0,0,0)",
-                height=250, margin=dict(t=20, b=10),
-                font=dict(color="#E4E8F0"),
-            )
-            return fig
+            },
+        ))
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            height=320, margin=dict(t=20, b=10),
+            font=dict(color="#E4E8F0"),
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-        # Calculeaza toate probabilitatile automat
-        p_legit = predict_profil(LEGITIM)
-        p_frauda = predict_profil(FRAUDA)
-        p_suspect = predict_profil(SUSPECT)
-
-        st.markdown("---")
-
-        # Afisare side-by-side - 3 coloane
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.markdown(f"""
-            <div class="result-box-legit" style="min-height:120px;">
-                <div style="font-size:1.3rem; font-weight:700;">LEGITIMA</div>
-                <div style="font-size:0.9rem; margin-top:0.3rem; opacity:0.8;">
-                    Suma: {LEGITIM['amount']} EUR
-                </div>
-                <div style="font-size:2rem; font-weight:700; margin-top:0.5rem;">
-                    {p_legit*100:.4f}%
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.plotly_chart(gauge_fig(p_legit, "#00D4AA"),
-                          use_container_width=True, key="gauge_legit")
-
-        with col2:
-            st.markdown(f"""
-            <div style="background:linear-gradient(135deg,#1A1A2E,#0E1117);
-                        border:2px solid #F39C12; border-radius:12px;
-                        padding:1.5rem; text-align:center; min-height:120px;
-                        box-shadow:0 0 20px rgba(243,156,18,0.2);">
-                <div style="font-size:1.3rem; font-weight:700; color:#F39C12;">SUSPECTA</div>
-                <div style="font-size:0.9rem; margin-top:0.3rem; color:#8B95A7;">
-                    Suma: {SUSPECT['amount']} EUR
-                </div>
-                <div style="font-size:2rem; font-weight:700; color:#F39C12; margin-top:0.5rem;">
-                    {p_suspect*100:.1f}%
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.plotly_chart(gauge_fig(p_suspect, "#F39C12"),
-                          use_container_width=True, key="gauge_suspect")
-
-        with col3:
-            st.markdown(f"""
-            <div class="result-box-fraud" style="min-height:120px;">
-                <div style="font-size:1.3rem; font-weight:700;">FRAUDA</div>
-                <div style="font-size:0.9rem; margin-top:0.3rem; opacity:0.8;">
-                    Suma: {FRAUDA['amount']} EUR
-                </div>
-                <div style="font-size:2rem; font-weight:700; margin-top:0.5rem;">
-                    {p_frauda*100:.1f}%
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            st.plotly_chart(gauge_fig(p_frauda, "#E74C3C"),
-                          use_container_width=True, key="gauge_frauda")
-
-        st.markdown("---")
         st.markdown("""
         <div class="info-box">
-        Cele trei scenarii de mai sus folosesc tranzactii reale din dataset.
-        Parametrii interni (V1-V28) sunt trasaturi anonimizate prin PCA.
-        Modelul XGBoost analizeaza toate cele 30 de trasaturi simultan si returneaza
-        probabilitatea ca tranzactia sa fie frauduloasa.
+        Slider-ul interpoleaza liniar intre profilul unei tranzactii legitime reale (0%)
+        si profilul unei tranzactii frauduloase reale (100%) din dataset.
+        Modelul XGBoost recalculeaza probabilitatea in timp real la fiecare modificare.
         </div>
         """, unsafe_allow_html=True)
 
