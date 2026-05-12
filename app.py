@@ -403,23 +403,65 @@ with tab3:
         st.markdown("#### Genereaza o tranzactie")
         st.markdown("Completeaza detaliile de mai jos pentru a construi o tranzactie si a o clasifica.")
 
+        # Scenarii rapide
+        st.markdown("**Scenarii rapide:**")
+        col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+
+        SCENARII = {
+            "Cumparaturi online": {"suma": 85.0, "ora": 14, "tip_card": "Visa Debit", "tara": "Romania", "tip_comerciant": "Cumparaturi online", "metoda": "Online (3D Secure)"},
+            "Retragere ATM noapte": {"suma": 200.0, "ora": 3, "tip_card": "Mastercard Debit", "tara": "Romania", "tip_comerciant": "ATM / Retragere numerar", "metoda": "Chip + PIN"},
+            "Frauda tipica": {"suma": 1.0, "ora": 2, "tip_card": "Visa Credit", "tara": "Alta tara", "tip_comerciant": "ATM / Retragere numerar", "metoda": "Banda magnetica"},
+            "Tranzactie suspecta": {"suma": 2500.0, "ora": 4, "tip_card": "Mastercard Credit", "tara": "SUA", "tip_comerciant": "Electronice", "metoda": "Banda magnetica"},
+        }
+
+        scenariu_ales = None
+        with col_s1:
+            if st.button("Cumparaturi online", use_container_width=True):
+                scenariu_ales = "Cumparaturi online"
+        with col_s2:
+            if st.button("Retragere ATM noapte", use_container_width=True):
+                scenariu_ales = "Retragere ATM noapte"
+        with col_s3:
+            if st.button("Frauda tipica", use_container_width=True):
+                scenariu_ales = "Frauda tipica"
+        with col_s4:
+            if st.button("Tranzactie suspecta", use_container_width=True):
+                scenariu_ales = "Tranzactie suspecta"
+
+        # Daca s-a apasat un buton, precompletam valorile in session_state
+        if scenariu_ales:
+            for k, v in SCENARII[scenariu_ales].items():
+                st.session_state[f"form_{k}"] = v
+
+        st.markdown("---")
+
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
             suma = st.number_input("Suma (EUR)", min_value=0.0, max_value=10000.0,
-                                   value=85.0, step=1.0)
-            tip_card = st.selectbox("Tip card", ["Visa Debit", "Mastercard Credit",
-                                                  "Visa Credit", "Mastercard Debit"])
+                                   value=float(st.session_state.get("form_suma", 85.0)), step=1.0)
+            tip_card = st.selectbox("Tip card", ["Visa Debit", "Mastercard Credit", "Visa Credit", "Mastercard Debit"],
+                                    index=["Visa Debit", "Mastercard Credit", "Visa Credit", "Mastercard Debit"].index(
+                                        st.session_state.get("form_tip_card", "Visa Debit")))
         with col_f2:
-            ora = st.slider("Ora tranzactiei", 0, 23, 14, format="%d:00")
-            tara = st.selectbox("Tara comerciant", ["Romania", "Franta", "Germania",
-                                                     "UK", "SUA", "Olanda", "Alta tara"])
+            ora = st.slider("Ora tranzactiei", 0, 23,
+                            value=int(st.session_state.get("form_ora", 14)), format="%d:00")
+            tara = st.selectbox("Tara comerciant",
+                                ["Romania", "Franta", "Germania", "UK", "SUA", "Olanda", "Alta tara"],
+                                index=["Romania", "Franta", "Germania", "UK", "SUA", "Olanda", "Alta tara"].index(
+                                    st.session_state.get("form_tara", "Romania")))
         with col_f3:
-            tip_comerciant = st.selectbox("Tip comerciant", [
-                "Cumparaturi online", "Restaurant / Cafenea", "Supermarket",
-                "Electronice", "ATM / Retragere numerar", "Transport / Combustibil",
-                "Servicii digitale (abonamente)"
-            ])
-            metoda = st.selectbox("Metoda", ["Contactless", "Chip + PIN", "Online (3D Secure)", "Banda magnetica"])
+            tip_comerciant = st.selectbox("Tip comerciant",
+                ["Cumparaturi online", "Restaurant / Cafenea", "Supermarket",
+                 "Electronice", "ATM / Retragere numerar", "Transport / Combustibil",
+                 "Servicii digitale (abonamente)"],
+                index=["Cumparaturi online", "Restaurant / Cafenea", "Supermarket",
+                       "Electronice", "ATM / Retragere numerar", "Transport / Combustibil",
+                       "Servicii digitale (abonamente)"].index(
+                           st.session_state.get("form_tip_comerciant", "Cumparaturi online")))
+            metoda = st.selectbox("Metoda",
+                ["Contactless", "Chip + PIN", "Online (3D Secure)", "Banda magnetica"],
+                index=["Contactless", "Chip + PIN", "Online (3D Secure)", "Banda magnetica"].index(
+                    st.session_state.get("form_metoda", "Contactless")))
 
         # Mapam campurile vizibile la profiluri de risc
         # Factori de risc: ATM noaptea + alta tara + banda magnetica = frauda
