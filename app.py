@@ -735,8 +735,7 @@ with tab5:
         - **imbalanced-learn** — SMOTE
         - **Streamlit** — interfata web interactiva
         - **Plotly** — grafice interactive
-
-       
+        """)
 
     with col2:
         st.markdown("#### Resurse")
@@ -746,7 +745,6 @@ with tab5:
         - [XGBoost paper](https://arxiv.org/abs/1603.02754)
         - [Streamlit](https://streamlit.io)
         """)
-
 
 # Footer
 st.markdown("---")
