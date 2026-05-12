@@ -751,18 +751,6 @@ with tab5:
         - [Streamlit](https://streamlit.io)
         """)
 
-        st.markdown("#### Autor")
-        st.markdown("""
-        **[Numele tau]**
-        Proiect academic 2025-2026
-        """)
-
-        st.markdown("#### Status")
-        if fisiere_ok:
-            st.success("Model incarcat")
-            st.success("Aplicatie functionala")
-        else:
-            st.error("Modelul nu este incarcat")
 
 # Footer
 st.markdown("---")
