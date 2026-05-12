@@ -150,17 +150,19 @@ def incarca_resurse():
     try:
         with open("model.pkl", "rb") as f:
             model = pickle.load(f)
-        with open("scaler.pkl", "rb") as f:
-            scaler = pickle.load(f)
+        with open("scaler_amount.pkl", "rb") as f:
+            scaler_amount = pickle.load(f)
+        with open("scaler_time.pkl", "rb") as f:
+            scaler_time = pickle.load(f)
         with open("rezultate.pkl", "rb") as f:
             rezultate = pickle.load(f)
         with open("stats.pkl", "rb") as f:
             stats = pickle.load(f)
-        return model, scaler, rezultate, stats, True
+        return model, scaler_amount, scaler_time, rezultate, stats, True
     except FileNotFoundError:
-        return None, None, None, None, False
+        return None, None, None, None, None, False
 
-model, scaler, rezultate, stats, fisiere_ok = incarca_resurse()
+model, scaler_amount, scaler_time, rezultate, stats, fisiere_ok = incarca_resurse()
 
 # ====================================================================
 # SIDEBAR - NAVIGARE
@@ -474,13 +476,8 @@ with tab3:
                                use_container_width=True, type="primary")
 
         if predict:
-            # Scalerul a fost antrenat pe DataFrame cu coloane Time si Amount
-            # Reconstructam exact cum a fost antrenat
-            import pandas as pd
-            row = pd.DataFrame([[time_val, amount_val]], columns=["Time", "Amount"])
-            scaled = scaler.transform(row)
-            time_scaled = scaled[0][0]
-            amount_scaled = scaled[0][1]
+            time_scaled = scaler_time.transform(np.array([[time_val]]))[0][0]
+            amount_scaled = scaler_amount.transform(np.array([[amount_val]]))[0][0]
             v_values = profil["V"]
             features = [time_scaled] + v_values + [amount_scaled]
             X_input = np.array(features).reshape(1, -1)
