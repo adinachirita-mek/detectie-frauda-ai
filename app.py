@@ -168,7 +168,7 @@ model, scaler, rezultate, stats, fisiere_ok = incarca_resurse()
 with st.sidebar:
     st.markdown("### Detectie Frauda AI")
     st.markdown("---")
-    st.markdown("**Proiect academic**")
+    st.markdown("**Practica de cercetare**")
     st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
     st.markdown("---")
 
@@ -703,7 +703,7 @@ with tab5:
 
         #### Cele 3 directii ale temei
 
-        **1. Detectia fraudei** *(directia implementata in acest proiect)*
+        **1. Detectia fraudei (directia implementata in acest proiect)*
 
         Identificarea automata a tranzactiilor frauduloase folosind tehnici de
         Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
@@ -736,11 +736,7 @@ with tab5:
         - **Streamlit** — interfata web interactiva
         - **Plotly** — grafice interactive
 
-        #### Documentatie completa
-        Documentatia detaliata (13 pagini) este disponibila in repository-ul
-        proiectului. Aceasta include contextul teoretic complet, metodologia,
-        analiza rezultatelor si bibliografia.
-        """)
+     
 
     with col2:
         st.markdown("#### Resurse")
