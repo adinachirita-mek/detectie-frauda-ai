@@ -703,7 +703,7 @@ with tab5:
 
         #### Cele 3 directii ale temei
 
-        **1. Detectia fraudei (directia implementata in acest proiect)*
+        **1. Detectia fraudei** *(directia implementata in acest proiect)*
 
         Identificarea automata a tranzactiilor frauduloase folosind tehnici de
         Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
@@ -736,7 +736,7 @@ with tab5:
         - **Streamlit** — interfata web interactiva
         - **Plotly** — grafice interactive
 
-     
+       
 
     with col2:
         st.markdown("#### Resurse")
@@ -752,6 +752,6 @@ with tab5:
 st.markdown("---")
 st.markdown("""
 <div style="text-align:center; color:#5A6478; font-size:0.85rem; padding:1rem;">
-Proiect academic - Detectia fraudei prin AI · Construit cu Streamlit · 2026
+Practica de cercetare - Detectia fraudei prin AI | Construit cu Streamlit | 2026
 </div>
 """, unsafe_allow_html=True)
