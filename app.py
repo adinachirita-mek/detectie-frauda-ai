@@ -455,14 +455,9 @@ with tab3:
                 help="Suma in euro a tranzactiei"
             )
         with col_form2:
-            ora = st.slider(
-                "Ora tranzactiei",
-                min_value=0, max_value=23,
-                value=int((profil["time"] % 86400) // 3600),
-                format="%d:00",
-                help="Ora din zi la care s-a efectuat tranzactia"
-            )
-            time_val = float(ora * 3600 + 43200)
+            st.markdown("**Time (secunde de la prima tranzactie)**")
+            st.markdown(f"<div class='info-box' style='margin-top:0.3rem;'>{int(profil['time'])} secunde</div>", unsafe_allow_html=True)
+            time_val = float(profil["time"])
 
         # Info despre profilul ales
         st.markdown("""
@@ -479,8 +474,13 @@ with tab3:
                                use_container_width=True, type="primary")
 
         if predict:
-            time_scaled = scaler.transform([[time_val]])[0][0]
-            amount_scaled = scaler.transform([[amount_val]])[0][0]
+            # Scalerul a fost antrenat pe DataFrame cu coloane Time si Amount
+            # Reconstructam exact cum a fost antrenat
+            import pandas as pd
+            row = pd.DataFrame([[time_val, amount_val]], columns=["Time", "Amount"])
+            scaled = scaler.transform(row)
+            time_scaled = scaled[0][0]
+            amount_scaled = scaled[0][1]
             v_values = profil["V"]
             features = [time_scaled] + v_values + [amount_scaled]
             X_input = np.array(features).reshape(1, -1)
