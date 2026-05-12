@@ -10,9 +10,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-# ====================================================================
 # CONFIGURARE PAGINA
-# ====================================================================
+
 st.set_page_config(
     page_title="Detectie Frauda AI",
     page_icon=None,
@@ -20,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# CSS personalizat - DARK MODE cu accente albastre/verzi
+# CSS 
 st.markdown("""
 <style>
     /* Header principal - gradient albastru-verde */
@@ -141,9 +140,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ====================================================================
 # INCARCARE MODEL SI DATE
-# ====================================================================
+
 @st.cache_resource
 def incarca_resurse():
     """Incarca modelul, scaler-ul si rezultatele salvate."""
@@ -164,9 +162,8 @@ def incarca_resurse():
 
 model, scaler_amount, scaler_time, rezultate, stats, fisiere_ok = incarca_resurse()
 
-# ====================================================================
 # SIDEBAR - NAVIGARE
-# ====================================================================
+
 with st.sidebar:
     st.markdown("### Detectie Frauda AI")
     st.markdown("---")
@@ -190,15 +187,13 @@ with st.sidebar:
         st.markdown("---")
         st.error("Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
 
-# ====================================================================
 # HEADER PRINCIPAL
-# ====================================================================
+
 st.markdown('<p class="main-header">Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Supravegherea riscurilor financiare prin Inteligenta Artificiala</p>', unsafe_allow_html=True)
 
-# ====================================================================
 # TAB-URI
-# ====================================================================
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Acasa",
     "Analiza datelor",
@@ -207,9 +202,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Despre proiect"
 ])
 
-# ====================================================================
 # TAB 1: ACASA
-# ====================================================================
+
 with tab1:
     st.markdown("### Despre proiect")
     st.markdown("""
@@ -284,9 +278,8 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-# ====================================================================
 # TAB 2: ANALIZA DATELOR
-# ====================================================================
+
 with tab2:
     st.markdown("### Analiza exploratorie a datelor")
 
@@ -380,9 +373,8 @@ with tab2:
     else:
         st.info("Datele vor fi afisate dupa incarcarea modelului.")
 
-# ====================================================================
 # TAB 3: DEMO PREDICTIE
-# ====================================================================
+
 with tab3:
     st.markdown("### Demo predictie live")
     st.markdown("Foloseste slider-ul pentru a modifica profilul tranzactiei in timp real si vezi cum reactioneaza modelul.")
@@ -492,9 +484,8 @@ with tab3:
     else:
         st.warning("Demo-ul de predictie necesita modelul antrenat (model.pkl).")
 
-# ====================================================================
 # TAB 4: REZULTATE MODELE
-# ====================================================================
+
 with tab4:
     st.markdown("### Compararea modelelor antrenate")
 
@@ -633,9 +624,8 @@ with tab4:
     else:
         st.warning("Rezultatele vor fi afisate dupa incarcarea modelelor.")
 
-# ====================================================================
 # TAB 5: DESPRE PROIECT
-# ====================================================================
+
 with tab5:
     st.markdown("### Despre proiect")
 
@@ -649,7 +639,7 @@ with tab5:
 
         #### Cele 3 directii ale temei
 
-        **1. Detectia fraudei** *(directia implementata in acest proiect)*
+        **1. Detectia fraudei (directia implementata in acest proiect)**
 
         Identificarea automata a tranzactiilor frauduloase folosind tehnici de
         Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
