@@ -10,8 +10,9 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
+# ====================================================================
 # CONFIGURARE PAGINA
-
+# ====================================================================
 st.set_page_config(
     page_title="Detectie Frauda AI",
     page_icon=None,
@@ -19,7 +20,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# CSS 
+# CSS personalizat - DARK MODE cu accente albastre/verzi
 st.markdown("""
 <style>
     /* Header principal - gradient albastru-verde */
@@ -140,8 +141,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ====================================================================
 # INCARCARE MODEL SI DATE
-
+# ====================================================================
 @st.cache_resource
 def incarca_resurse():
     """Incarca modelul, scaler-ul si rezultatele salvate."""
@@ -162,12 +164,13 @@ def incarca_resurse():
 
 model, scaler_amount, scaler_time, rezultate, stats, fisiere_ok = incarca_resurse()
 
+# ====================================================================
 # SIDEBAR - NAVIGARE
-
+# ====================================================================
 with st.sidebar:
     st.markdown("### Detectie Frauda AI")
     st.markdown("---")
-    st.markdown("**Practica de cercetare**")
+    st.markdown("**Proiect academic**")
     st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
     st.markdown("---")
 
@@ -187,13 +190,15 @@ with st.sidebar:
         st.markdown("---")
         st.error("Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
 
+# ====================================================================
 # HEADER PRINCIPAL
-
+# ====================================================================
 st.markdown('<p class="main-header">Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Supravegherea riscurilor financiare prin Inteligenta Artificiala</p>', unsafe_allow_html=True)
 
+# ====================================================================
 # TAB-URI
-
+# ====================================================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Acasa",
     "Analiza datelor",
@@ -202,8 +207,9 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Despre proiect"
 ])
 
+# ====================================================================
 # TAB 1: ACASA
-
+# ====================================================================
 with tab1:
     st.markdown("### Despre proiect")
     st.markdown("""
@@ -278,8 +284,9 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
+# ====================================================================
 # TAB 2: ANALIZA DATELOR
-
+# ====================================================================
 with tab2:
     st.markdown("### Analiza exploratorie a datelor")
 
@@ -373,11 +380,12 @@ with tab2:
     else:
         st.info("Datele vor fi afisate dupa incarcarea modelului.")
 
+# ====================================================================
 # TAB 3: DEMO PREDICTIE
-
+# ====================================================================
 with tab3:
     st.markdown("### Demo predictie live")
-    st.markdown("Foloseste slider-ul pentru a modifica profilul tranzactiei in timp real si vezi cum reactioneaza modelul.")
+    st.markdown("Genereaza o tranzactie cu date reale si vezi cum o clasifica modelul. Mai jos poti explora interactiv granita dintre legitim si frauda.")
 
     if fisiere_ok:
 
@@ -390,17 +398,183 @@ with tab3:
                     -2.8301, -0.0168, 0.417, 0.1269, 0.5172, -0.035, -0.4652, 0.3202,
                     0.0445, 0.1778, 0.2611, -0.1433]
 
+        # ── SECTIUNEA 1: GENERARE TRANZACTIE ──────────────────────────
         st.markdown("---")
+        st.markdown("#### Genereaza o tranzactie")
+        st.markdown("Completeaza detaliile de mai jos pentru a construi o tranzactie si a o clasifica.")
 
-        # Slider principal
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            suma = st.number_input("Suma (EUR)", min_value=0.0, max_value=10000.0,
+                                   value=85.0, step=1.0)
+            tip_card = st.selectbox("Tip card", ["Visa Debit", "Mastercard Credit",
+                                                  "Visa Credit", "Mastercard Debit"])
+        with col_f2:
+            ora = st.slider("Ora tranzactiei", 0, 23, 14, format="%d:00")
+            tara = st.selectbox("Tara comerciant", ["Romania", "Franta", "Germania",
+                                                     "UK", "SUA", "Olanda", "Alta tara"])
+        with col_f3:
+            tip_comerciant = st.selectbox("Tip comerciant", [
+                "Cumparaturi online", "Restaurant / Cafenea", "Supermarket",
+                "Electronice", "ATM / Retragere numerar", "Transport / Combustibil",
+                "Servicii digitale (abonamente)"
+            ])
+            metoda = st.selectbox("Metoda", ["Contactless", "Chip + PIN", "Online (3D Secure)", "Banda magnetica"])
+
+        # Mapam campurile vizibile la profiluri de risc
+        # Factori de risc: ATM noaptea + alta tara + banda magnetica = frauda
+        scor_risc = 0
+        if ora < 6 or ora > 23:
+            scor_risc += 0.3
+        if tara in ["SUA", "Alta tara"]:
+            scor_risc += 0.25
+        if metoda == "Banda magnetica":
+            scor_risc += 0.3
+        if tip_comerciant == "ATM / Retragere numerar":
+            scor_risc += 0.15
+        if suma < 2 or suma > 2000:
+            scor_risc += 0.15
+        scor_risc = min(scor_risc, 1.0)
+
+        # Interpolare V pe baza scorului de risc
+        v_tranzactie = [V_LEGIT[i] * (1 - scor_risc) + V_FRAUDA[i] * scor_risc for i in range(28)]
+        time_val = float(ora * 3600)
+
+        if st.button("CLASIFICA TRANZACTIA", type="primary", use_container_width=True):
+            t_sc = scaler_time.transform(np.array([[time_val]]))[0][0]
+            a_sc = scaler_amount.transform(np.array([[suma]]))[0][0]
+            features = [t_sc] + v_tranzactie + [a_sc]
+            proba_t = model.predict_proba(np.array(features).reshape(1, -1))[0, 1]
+
+            # Afisam cardul de tranzactie
+            st.markdown("#### Tranzactia generata")
+            col_card, col_rez = st.columns([1, 1])
+
+            with col_card:
+                st.markdown(f"""
+                <div style="background:linear-gradient(135deg, #1A1F2E, #2A3142);
+                            border:1px solid #2A3142; border-radius:16px;
+                            padding:1.5rem; font-family:monospace;">
+                    <div style="color:#8B95A7; font-size:0.8rem; margin-bottom:1rem;
+                                letter-spacing:2px;">DETALII TRANZACTIE</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.8rem;">
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">SUMA</div>
+                            <div style="color:#E4E8F0; font-size:1.4rem; font-weight:700;">
+                                {suma:.2f} EUR</div>
+                        </div>
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">ORA</div>
+                            <div style="color:#E4E8F0; font-size:1.4rem; font-weight:700;">
+                                {ora:02d}:00</div>
+                        </div>
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">TIP CARD</div>
+                            <div style="color:#E4E8F0; font-size:0.95rem;">{tip_card}</div>
+                        </div>
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">TARA</div>
+                            <div style="color:#E4E8F0; font-size:0.95rem;">{tara}</div>
+                        </div>
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">COMERCIANT</div>
+                            <div style="color:#E4E8F0; font-size:0.95rem;">{tip_comerciant}</div>
+                        </div>
+                        <div>
+                            <div style="color:#8B95A7; font-size:0.75rem;">METODA</div>
+                            <div style="color:#E4E8F0; font-size:0.95rem;">{metoda}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem; padding-top:1rem;
+                                border-top:1px solid #2A3142;">
+                        <div style="color:#8B95A7; font-size:0.75rem;">PARAMETRI INTERNI (PCA)</div>
+                        <div style="color:#5A6478; font-size:0.7rem; margin-top:0.3rem;">
+                            V1={v_tranzactie[0]:.3f} &nbsp; V2={v_tranzactie[1]:.3f} &nbsp;
+                            V3={v_tranzactie[2]:.3f} &nbsp; V14={v_tranzactie[13]:.3f} &nbsp;
+                            Amount={suma:.2f} &nbsp; Time={int(time_val)}s
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_rez:
+                if proba_t < 0.3:
+                    culoare_t = "#00D4AA"
+                    eticheta_t = "LEGITIMA"
+                    icon_t = "APROBATA"
+                elif proba_t < 0.7:
+                    culoare_t = "#F39C12"
+                    eticheta_t = "SUSPECTA"
+                    icon_t = "IN VERIFICARE"
+                else:
+                    culoare_t = "#E74C3C"
+                    eticheta_t = "FRAUDA DETECTATA"
+                    icon_t = "BLOCATA"
+
+                st.markdown(f"""
+                <div style="background:linear-gradient(135deg, #1A1F2E, #0E1117);
+                            border:2px solid {culoare_t}; border-radius:16px;
+                            padding:1.5rem; text-align:center;
+                            box-shadow:0 0 25px {culoare_t}44; height:100%;">
+                    <div style="color:#8B95A7; font-size:0.8rem; letter-spacing:2px;
+                                margin-bottom:0.5rem;">DECIZIE MODEL</div>
+                    <div style="font-size:1rem; font-weight:700; color:{culoare_t};
+                                letter-spacing:1px;">{icon_t}</div>
+                    <div style="font-size:1.6rem; font-weight:700; color:{culoare_t};
+                                margin:0.5rem 0;">{eticheta_t}</div>
+                    <div style="font-size:2.5rem; font-weight:700; color:{culoare_t};">
+                        {proba_t*100:.2f}%</div>
+                    <div style="color:#8B95A7; font-size:0.8rem; margin-top:0.5rem;">
+                        probabilitate frauda</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Gauge mic
+                fig_t = go.Figure(go.Indicator(
+                    mode="gauge",
+                    value=proba_t * 100,
+                    gauge={
+                        "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
+                        "bar": {"color": culoare_t},
+                        "bgcolor": "#1A1F2E",
+                        "borderwidth": 1, "bordercolor": "#2A3142",
+                        "steps": [
+                            {"range": [0, 30], "color": "#0D2A1F"},
+                            {"range": [30, 70], "color": "#2A2515"},
+                            {"range": [70, 100], "color": "#2A1518"},
+                        ],
+                        "threshold": {"line": {"color": "#E4E8F0", "width": 2},
+                                      "thickness": 0.75, "value": 50},
+                    },
+                ))
+                fig_t.update_layout(
+                    template="plotly_dark",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    height=180, margin=dict(t=10, b=10, l=10, r=10),
+                )
+                st.plotly_chart(fig_t, use_container_width=True)
+
+            st.markdown("""
+            <div class="info-box">
+            Campurile completate (suma, ora, tara, metoda) sunt traduse in parametri statistici
+            prin intermediul profilurilor de risc invatate din dataset. Modelul XGBoost analizeaza
+            toti parametrii si returneaza probabilitatea ca tranzactia sa fie frauduloasa.
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ── SECTIUNEA 2: SLIDER INTERACTIV ────────────────────────────
+        st.markdown("---")
+        st.markdown("#### Exploreaza granita dintre legitim si frauda")
+        st.markdown("Slider-ul interpoleaza in timp real intre o tranzactie legitima si una frauduloasa reale din dataset.")
+
         nivel = st.slider(
-            "Nivel de risc al tranzactiei",
+            "Nivel de risc",
             min_value=0, max_value=100, value=0, step=1,
             format="%d%%",
             help="0% = tranzactie complet normala | 100% = profil de frauda pur"
         )
 
-        # Interpolare in timp real
         pct = nivel / 100.0
         v_mix = [V_LEGIT[i] * (1 - pct) + V_FRAUDA[i] * pct for i in range(28)]
         amount_mix = 100.0 * (1 - pct) + 0.0 * pct
@@ -410,9 +584,7 @@ with tab3:
         a_scaled = scaler_amount.transform(np.array([[amount_mix]]))[0][0]
         features = [t_scaled] + v_mix + [a_scaled]
         proba = model.predict_proba(np.array(features).reshape(1, -1))[0, 1]
-        pred = int(proba > 0.5)
 
-        # Culoare dinamica bazata pe probabilitate
         if proba < 0.3:
             culoare = "#00D4AA"
             eticheta = "LEGITIMA"
@@ -423,7 +595,6 @@ with tab3:
             culoare = "#E74C3C"
             eticheta = "FRAUDA DETECTATA"
 
-        # Box rezultat
         st.markdown(f"""
         <div style="background:linear-gradient(135deg, #1A1F2E, #0E1117);
                     border: 2px solid {culoare}; border-radius:12px;
@@ -436,12 +607,11 @@ with tab3:
                 {proba*100:.2f}%
             </div>
             <div style="color:#8B95A7; font-size:0.9rem;">
-                Suma: {amount_mix:.2f} EUR &nbsp;|&nbsp; Nivel risc selectat: {nivel}%
+                Suma: {amount_mix:.2f} EUR &nbsp;|&nbsp; Nivel risc: {nivel}%
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Gauge
         fig = go.Figure(go.Indicator(
             mode="gauge+number",
             value=proba * 100,
@@ -451,17 +621,14 @@ with tab3:
                 "axis": {"range": [0, 100], "tickcolor": "#8B95A7"},
                 "bar": {"color": culoare},
                 "bgcolor": "#1A1F2E",
-                "borderwidth": 2,
-                "bordercolor": "#2A3142",
+                "borderwidth": 2, "bordercolor": "#2A3142",
                 "steps": [
                     {"range": [0, 30], "color": "#0D2A1F"},
                     {"range": [30, 70], "color": "#2A2515"},
                     {"range": [70, 100], "color": "#2A1518"},
                 ],
-                "threshold": {
-                    "line": {"color": "#E4E8F0", "width": 3},
-                    "thickness": 0.75, "value": 50,
-                },
+                "threshold": {"line": {"color": "#E4E8F0", "width": 3},
+                              "thickness": 0.75, "value": 50},
             },
         ))
         fig.update_layout(
@@ -473,19 +640,12 @@ with tab3:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("""
-        <div class="info-box">
-        Slider-ul interpoleaza liniar intre profilul unei tranzactii legitime reale (0%)
-        si profilul unei tranzactii frauduloase reale (100%) din dataset.
-        Modelul XGBoost recalculeaza probabilitatea in timp real la fiecare modificare.
-        </div>
-        """, unsafe_allow_html=True)
-
     else:
         st.warning("Demo-ul de predictie necesita modelul antrenat (model.pkl).")
 
+# ====================================================================
 # TAB 4: REZULTATE MODELE
-
+# ====================================================================
 with tab4:
     st.markdown("### Compararea modelelor antrenate")
 
@@ -624,8 +784,9 @@ with tab4:
     else:
         st.warning("Rezultatele vor fi afisate dupa incarcarea modelelor.")
 
+# ====================================================================
 # TAB 5: DESPRE PROIECT
-
+# ====================================================================
 with tab5:
     st.markdown("### Despre proiect")
 
@@ -639,7 +800,7 @@ with tab5:
 
         #### Cele 3 directii ale temei
 
-        **1. Detectia fraudei (directia implementata in acest proiect)**
+        **1. Detectia fraudei** *(directia implementata in acest proiect)*
 
         Identificarea automata a tranzactiilor frauduloase folosind tehnici de
         Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
