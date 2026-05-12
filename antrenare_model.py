@@ -1,3 +1,14 @@
+"""
+Script de antrenare - se ruleaza O SINGURA DATA pentru a genera fisierele:
+  - model.pkl       (modelul XGBoost antrenat)
+  - scaler.pkl      (scalerul pentru Time si Amount)
+  - rezultate.pkl   (metricile, curbele ROC/PR pentru toate modelele)
+
+Acest script se ruleaza in Google Colab (gratuit, in browser).
+Dupa rulare, descarci cele 3 fisiere .pkl si le pui in repository-ul GitHub
+alaturi de app.py.
+"""
+
 import pickle
 import numpy as np
 import pandas as pd
@@ -22,9 +33,10 @@ df = pd.read_csv("creditcard.csv")
 print(f"   {len(df):,} tranzactii, {df['Class'].sum()} fraude")
 
 print("2. Preprocesare...")
-scaler = StandardScaler()
-df["Amount"] = scaler.fit_transform(df[["Amount"]])
-df["Time"] = scaler.fit_transform(df[["Time"]])
+scaler_amount = StandardScaler()
+scaler_time = StandardScaler()
+df["Amount"] = scaler_amount.fit_transform(df[["Amount"]])
+df["Time"] = scaler_time.fit_transform(df[["Time"]])
 
 X = df.drop("Class", axis=1)
 y = df["Class"]
@@ -69,18 +81,21 @@ for nume, model in modele.items():
     }
     print(f"      F1={rezultate[nume]['f1']:.3f}, ROC-AUC={rezultate[nume]['roc_auc']:.3f}")
 
-# Modelul XGBoost pentru predictii live
+# Salvam doar modelul XGBoost (cel mai performant) pentru predictii live
 print("5. Salvez fisierele...")
 with open("model.pkl", "wb") as f:
     pickle.dump(modele["XGBoost"], f)
 
-with open("scaler.pkl", "wb") as f:
-    pickle.dump(scaler, f)
+with open("scaler_amount.pkl", "wb") as f:
+    pickle.dump(scaler_amount, f)
+
+with open("scaler_time.pkl", "wb") as f:
+    pickle.dump(scaler_time, f)
 
 with open("rezultate.pkl", "wb") as f:
     pickle.dump(rezultate, f)
 
-
+# Salvam si cateva statistici despre dataset pentru afisare
 stats = {
     "total": len(df),
     "fraude": int(df["Class"].sum()),
@@ -94,7 +109,8 @@ with open("stats.pkl", "wb") as f:
 
 print("\nGATA! Fisiere generate:")
 print("  - model.pkl")
-print("  - scaler.pkl")
+print("  - scaler_amount.pkl")
+print("  - scaler_time.pkl")
 print("  - rezultate.pkl")
 print("  - stats.pkl")
 print("\nDescarca-le si pune-le in repository-ul GitHub alaturi de app.py")
