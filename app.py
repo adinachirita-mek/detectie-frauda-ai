@@ -167,7 +167,7 @@ model, scaler_amount, scaler_time, rezultate, stats, fisiere_ok = incarca_resurs
 with st.sidebar:
     st.markdown("### Detectie Frauda AI")
     st.markdown("---")
-    st.markdown("**Proiect academic**")
+    st.markdown("**Practica de cercetare**")
     st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
     st.markdown("---")
 
