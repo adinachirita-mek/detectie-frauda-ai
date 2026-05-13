@@ -757,7 +757,7 @@ with tab5:
 
         #### Cele 3 directii ale temei
 
-        **1. Detectia fraudei** *(directia implementata in acest proiect)*
+        **1. Detectia fraudei (directia implementata in acest proiect)**
 
         Identificarea automata a tranzactiilor frauduloase folosind tehnici de
         Machine Learning. Caracterizata de dezechilibru extrem de clase si necesitatea
