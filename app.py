@@ -10,9 +10,8 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 
-# ====================================================================
 # CONFIGURARE PAGINA
-# ====================================================================
+
 st.set_page_config(
     page_title="Detectie Frauda AI",
     page_icon=None,
@@ -20,7 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# CSS personalizat - DARK MODE cu accente albastre/verzi
+# CSS 
 st.markdown("""
 <style>
     /* Header principal - gradient albastru-verde */
@@ -141,9 +140,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ====================================================================
 # INCARCARE MODEL SI DATE
-# ====================================================================
+
 @st.cache_resource
 def incarca_resurse():
     """Incarca modelul, scaler-ul si rezultatele salvate."""
@@ -164,13 +162,12 @@ def incarca_resurse():
 
 model, scaler_amount, scaler_time, rezultate, stats, fisiere_ok = incarca_resurse()
 
-# ====================================================================
 # SIDEBAR - NAVIGARE
-# ====================================================================
+
 with st.sidebar:
     st.markdown("### Detectie Frauda AI")
     st.markdown("---")
-    st.markdown("**Proiect academic**")
+    st.markdown("**Practica de cercetare**")
     st.markdown("Supravegherea riscurilor financiare prin inteligenta artificiala")
     st.markdown("---")
 
@@ -190,15 +187,13 @@ with st.sidebar:
         st.markdown("---")
         st.error("Modelul nu este incarcat. Ruleaza intai antrenare_model.py")
 
-# ====================================================================
 # HEADER PRINCIPAL
-# ====================================================================
+
 st.markdown('<p class="main-header">Detectia Fraudei pe Carduri de Credit</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Supravegherea riscurilor financiare prin Inteligenta Artificiala</p>', unsafe_allow_html=True)
 
-# ====================================================================
 # TAB-URI
-# ====================================================================
+
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Acasa",
     "Analiza datelor",
@@ -207,9 +202,8 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Despre proiect"
 ])
 
-# ====================================================================
 # TAB 1: ACASA
-# ====================================================================
+
 with tab1:
     st.markdown("### Despre proiect")
     st.markdown("""
@@ -284,9 +278,8 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
 
-# ====================================================================
 # TAB 2: ANALIZA DATELOR
-# ====================================================================
+
 with tab2:
     st.markdown("### Analiza exploratorie a datelor")
 
@@ -379,10 +372,9 @@ with tab2:
             st.dataframe(df_info, hide_index=True, use_container_width=True)
     else:
         st.info("Datele vor fi afisate dupa incarcarea modelului.")
-
-# ====================================================================
+        
 # TAB 3: DEMO PREDICTIE
-# ====================================================================
+
 with tab3:
     st.markdown("### Demo predictie live")
     st.markdown("Genereaza o tranzactie cu date reale si vezi cum o clasifica modelul. Mai jos poti explora interactiv granita dintre legitim si frauda.")
@@ -398,7 +390,7 @@ with tab3:
                     -2.8301, -0.0168, 0.417, 0.1269, 0.5172, -0.035, -0.4652, 0.3202,
                     0.0445, 0.1778, 0.2611, -0.1433]
 
-        # ── SECTIUNEA 1: GENERARE TRANZACTIE ──────────────────────────
+        #  SECTIUNEA 1: GENERARE TRANZACTIE 
         st.markdown("---")
         st.markdown("#### Genereaza o tranzactie")
         st.markdown("Completeaza detaliile de mai jos pentru a construi o tranzactie si a o clasifica.")
@@ -428,7 +420,7 @@ with tab3:
             if st.button("Tranzactie suspecta", use_container_width=True):
                 scenariu_ales = "Tranzactie suspecta"
 
-        # Daca s-a apasat un buton, precompletam valorile in session_state
+        # Daca s-a apasat un buton, precompletare valori in session_state
         if scenariu_ales:
             for k, v in SCENARII[scenariu_ales].items():
                 st.session_state[f"form_{k}"] = v
@@ -463,7 +455,7 @@ with tab3:
                 index=["Contactless", "Chip + PIN", "Online (3D Secure)", "Banda magnetica"].index(
                     st.session_state.get("form_metoda", "Contactless")))
 
-        # Mapam campurile vizibile la profiluri de risc
+       
         # Factori de risc: ATM noaptea + alta tara + banda magnetica = frauda
         scor_risc = 0
         if ora < 6 or ora > 23:
@@ -488,7 +480,7 @@ with tab3:
             features = [t_sc] + v_tranzactie + [a_sc]
             proba_t = model.predict_proba(np.array(features).reshape(1, -1))[0, 1]
 
-            # Afisam cardul de tranzactie
+            # Afisare card de tranzactie
             st.markdown("#### Tranzactia generata")
             col_card, col_rez = st.columns([1, 1])
 
@@ -571,7 +563,7 @@ with tab3:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Gauge mic
+                # Gauge 
                 fig_t = go.Figure(go.Indicator(
                     mode="gauge",
                     value=proba_t * 100,
@@ -608,9 +600,9 @@ with tab3:
     else:
         st.warning("Demo-ul de predictie necesita modelul antrenat (model.pkl).")
 
-# ====================================================================
+
 # TAB 4: REZULTATE MODELE
-# ====================================================================
+
 with tab4:
     st.markdown("### Compararea modelelor antrenate")
 
@@ -749,9 +741,9 @@ with tab4:
     else:
         st.warning("Rezultatele vor fi afisate dupa incarcarea modelelor.")
 
-# ====================================================================
+
 # TAB 5: DESPRE PROIECT
-# ====================================================================
+
 with tab5:
     st.markdown("### Despre proiect")
 
